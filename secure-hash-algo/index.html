@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHA-1 Hash Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SHA-1 Hash Generator</h1>
+            <p>Generate SHA-1 hashes for messages and files</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Sender Section -->
+            <section class="sender-section">
+                <h2>Sender</h2>
+                <div class="input-group">
+                    <label for="message-input">Enter Message:</label>
+                    <textarea id="message-input" placeholder="Type your message here..."></textarea>
+                </div>
+                
+                <div class="file-upload-group">
+                    <label for="file-input">Upload File:</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="file-input" accept="*/*">
+                        <label for="file-input" class="file-label">
+                            Choose File
+                        </label>
+                        <span id="file-status">No file selected</span>
+                    </div>
+                </div>
+
+                <button id="generate-btn" class="generate-button">Generate Digest</button>
+                
+                <div class="output-group">
+                    <label>Generated SHA-1 Hash:</label>
+                    <div id="hash-output" class="hash-display">
+                        Hash will appear here...
+                    </div>
+                    <button id="copy-btn" class="copy-button" style="display: none;">Copy Hash</button>
+                </div>
+            </section>
+
+            <!-- Receiver Section -->
+            <section class="receiver-section">
+                <h2>Receiver</h2>
+                <div class="input-group">
+                    <label for="received-message">Received Message:</label>
+                    <textarea id="received-message" placeholder="Paste the received message here..."></textarea>
+                </div>
+                
+                <div class="input-group">
+                    <label for="received-hash">Received Hash:</label>
+                    <input type="text" id="received-hash" placeholder="Paste the received SHA-1 hash here...">
+                </div>
+
+                <button id="verify-btn" class="verify-button">Verify Hash</button>
+                
+                <div class="verification-result" id="verification-result">
+                    <span id="verification-status">Verification result will appear here...</span>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // SHA-1 Implementation
+        function sha1(message) {
+            function rotateLeft(n, s) {
+                return (n << s) | (n >>> (32 - s));
+            }
+
+            function toHexStr(n) {
+                let s = "";
+                for (let i = 7; i >= 0; i--) {
+                    let v = (n >>> (i * 4)) & 0x0f;
+                    s += v.toString(16);
+                }
+                return s;
+            }
+
+            function utf8Encode(str) {
+                return unescape(encodeURIComponent(str));
+            }
+
+            message = utf8Encode(message);
+            
+            const msgLength = message.length;
+            const wordArray = [];
+            
+            for (let i = 0; i < msgLength - 3; i += 4) {
+                let j = message.charCodeAt(i) << 24 |
+                       message.charCodeAt(i + 1) << 16 |
+                       message.charCodeAt(i + 2) << 8 |
+                       message.charCodeAt(i + 3);
+                wordArray.push(j);
+            }
+
+            switch (msgLength % 4) {
+                case 0:
+                    let i = 0x080000000;
+                    wordArray.push(i);
+                    break;
+                case 1:
+                    let j = message.charCodeAt(msgLength - 1) << 24 | 0x0800000;
+                    wordArray.push(j);
+                    break;
+                case 2:
+                    let k = message.charCodeAt(msgLength - 2) << 24 |
+                           message.charCodeAt(msgLength - 1) << 16 | 0x08000;
+                    wordArray.push(k);
+                    break;
+                case 3:
+                    let l = message.charCodeAt(msgLength - 3) << 24 |
+                           message.charCodeAt(msgLength - 2) << 16 |
+                           message.charCodeAt(msgLength - 1) << 8 | 0x80;
+                    wordArray.push(l);
+                    break;
+            }
+
+            while ((wordArray.length % 16) != 14) {
+                wordArray.push(0);
+            }
+
+            wordArray.push(msgLength >>> 29);
+            wordArray.push((msgLength << 3) & 0x0ffffffff);
+
+            const w = new Array(80);
+            let H0 = 0x67452301;
+            let H1 = 0xEFCDAB89;
+            let H2 = 0x98BADCFE;
+            let H3 = 0x10325476;
+            let H4 = 0xC3D2E1F0;
+
+            for (let blockStart = 0; blockStart < wordArray.length; blockStart += 16) {
+                for (let i = 0; i < 16; i++) {
+                    w[i] = wordArray[blockStart + i];
+                }
+                
+                for (let i = 16; i < 80; i++) {
+                    w[i] = rotateLeft(w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16], 1);
+                }
+
+                let A = H0, B = H1, C = H2, D = H3, E = H4;
+
+                for (let i = 0; i < 80; i++) {
+                    let temp = rotateLeft(A, 5);
+                    
+                    if (i < 20) {
+                        temp += ((B & C) | (~B & D)) + 0x5A827999;
+                    } else if (i < 40) {
+                        temp += (B ^ C ^ D) + 0x6ED9EBA1;
+                    } else if (i < 60) {
+                        temp += ((B & C) | (B & D) | (C & D)) + 0x8F1BBCDC;
+                    } else {
+                        temp += (B ^ C ^ D) + 0xCA62C1D6;
+                    }
+                    
+                    temp += E + w[i];
+                    temp &= 0x0ffffffff;
+                    
+                    E = D;
+                    D = C;
+                    C = rotateLeft(B, 30);
+                    B = A;
+                    A = temp;
+                }
+
+                H0 = (H0 + A) & 0x0ffffffff;
+                H1 = (H1 + B) & 0x0ffffffff;
+                H2 = (H2 + C) & 0x0ffffffff;
+                H3 = (H3 + D) & 0x0ffffffff;
+                H4 = (H4 + E) & 0x0ffffffff;
+            }
+
+            return toHexStr(H0) + toHexStr(H1) + toHexStr(H2) + toHexStr(H3) + toHexStr(H4);
+        }
+
+        // File reading function
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        // Event listeners
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const status = document.getElementById('file-status');
+            
+            if (file) {
+                status.textContent = file.name;
+                status.style.color = '#4CAF50';
+            } else {
+                status.textContent = 'No file selected';
+                status.style.color = '#666';
+            }
+        });
+
+        document.getElementById('generate-btn').addEventListener('click', async function() {
+            const messageInput = document.getElementById('message-input');
+            const fileInput = document.getElementById('file-input');
+            const hashOutput = document.getElementById('hash-output');
+            const copyBtn = document.getElementById('copy-btn');
+            
+            let content = '';
+            
+            if (fileInput.files[0]) {
+                try {
+                    content = await readFileAsText(fileInput.files[0]);
+                } catch (error) {
+                    hashOutput.textContent = 'Error reading file: ' + error.message;
+                    hashOutput.style.color = '#f44336';
+                    return;
+                }
+            } else if (messageInput.value.trim()) {
+                content = messageInput.value.trim();
+            } else {
+                hashOutput.textContent = 'Please enter a message or select a file';
+                hashOutput.style.color = '#f44336';
+                return;
+            }
+            
+            const hash = sha1(content);
+            hashOutput.textContent = hash;
+            hashOutput.style.color = '#4CAF50';
+            copyBtn.style.display = 'inline-block';
+        });
+
+        document.getElementById('copy-btn').addEventListener('click', function() {
+            const hashOutput = document.getElementById('hash-output');
+            navigator.clipboard.writeText(hashOutput.textContent);
+            
+            const originalText = this.textContent;
+            this.textContent = 'Copied!';
+            setTimeout(() => {
+                this.textContent = originalText;
+            }, 1000);
+        });
+
+        document.getElementById('verify-btn').addEventListener('click', function() {
+            const receivedMessage = document.getElementById('received-message').value.trim();
+            const receivedHash = document.getElementById('received-hash').value.trim();
+            const verificationResult = document.getElementById('verification-result');
+            const verificationStatus = document.getElementById('verification-status');
+            
+            if (!receivedMessage || !receivedHash) {
+                verificationStatus.textContent = 'Please enter both message and hash';
+                verificationResult.className = 'verification-result error';
+                return;
+            }
+            
+            const calculatedHash = sha1(receivedMessage);
+            const isValid = calculatedHash.toLowerCase() === receivedHash.toLowerCase();
+            
+            if (isValid) {
+                verificationStatus.textContent = '✓ Hash verification successful! Message integrity confirmed.';
+                verificationResult.className = 'verification-result success';
+            } else {
+                verificationStatus.textContent = '✗ Hash verification failed! Message may have been tampered with.';
+                verificationResult.className = 'verification-result error';
+            }
+        });
+    </script>
+</body>
+</html>
