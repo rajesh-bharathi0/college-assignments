@@ -49,7 +49,7 @@
                     <!-- File Upload for Encoding -->
                     <div class="input-group">
                         <label class="input-label">Select Cover Image</label>
-                        <div class="file-upload-container">
+                        <div class="file-upload-container" onclick="document.getElementById('encode-file-input').click()">
                             <input type="file" id="encode-file-input" accept="image/*" onchange="handleEncodeImageChange(event)" class="file-input">
                             <div id="encode-file-display" class="file-upload-area">
                                 <div class="upload-icon">📁</div>
@@ -75,6 +75,7 @@
                     <canvas id="original-canvas" class="hidden-canvas"></canvas>
                     <canvas id="message-canvas" class="hidden-canvas"></canvas>
 
+                    <!-- Encoded Result -->
                     <div id="encoded-result" class="result-container encode-result" style="display: none;">
                         <h3 class="result-title">✅ Message Successfully Encoded!</h3>
                         <div class="result-content">
@@ -97,7 +98,7 @@
                     <!-- File Upload for Decoding -->
                     <div class="input-group">
                         <label class="input-label">Select Encoded Image</label>
-                        <div class="file-upload-container">
+                        <div class="file-upload-container" onclick="document.getElementById('decode-file-input').click()">
                             <input type="file" id="decode-file-input" accept="image/*" onchange="handleDecodeImageChange(event)" class="file-input">
                             <div class="file-upload-area">
                                 <div class="upload-icon">🔍</div>
@@ -105,6 +106,7 @@
                                 <p class="upload-subtext">Upload image with hidden message</p>
                             </div>
                         </div>
+                        <div id="decode-image-preview" class="image-preview" style="display: none;"></div>
                     </div>
 
                     <!-- Decode Button -->
@@ -203,6 +205,12 @@
                 hideError();
                 document.getElementById('encoded-result').style.display = 'none';
                 
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    showError('Please select a valid image file');
+                    return;
+                }
+                
                 previewImage(file, canvas, () => {
                     // Show image preview
                     const reader = new FileReader();
@@ -211,7 +219,7 @@
                             <div class="preview-content">
                                 <img src="${e.target.result}" alt="Selected cover image" class="preview-img">
                                 <div class="preview-info">
-                                    <p class="preview-status">✅ Cover image selected</p>
+                                    <p class="preview-status">✅ Cover image selected (${canvas.width}x${canvas.height})</p>
                                     <button class="change-button" onclick="clearEncodeImage()">Change Image</button>
                                 </div>
                             </div>
@@ -226,13 +234,33 @@
         function handleDecodeImageChange(event) {
             const file = event.target.files[0];
             const canvas = document.getElementById('decode-canvas');
+            const preview = document.getElementById('decode-image-preview');
             
             if (file && canvas) {
                 hideError();
                 document.getElementById('decoded-result').style.display = 'none';
                 
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    showError('Please select a valid image file');
+                    return;
+                }
+                
                 previewImage(file, canvas, () => {
-                    console.log('Decode image preview ready');
+                    // Show decode image preview
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        preview.innerHTML = `
+                            <div class="preview-content">
+                                <img src="${e.target.result}" alt="Selected encoded image" class="preview-img">
+                                <div class="preview-info">
+                                    <p class="preview-status">✅ Encoded image loaded (${canvas.width}x${canvas.height})</p>
+                                </div>
+                            </div>
+                        `;
+                        preview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
                 });
             }
         }
