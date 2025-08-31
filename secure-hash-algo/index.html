@@ -4,342 +4,238 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SHA-1 Message Digest Algorithm</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <!-- Bright Title -->
-        <header class="main-header">
-            <h1>SHA-1 Message Digest Algorithm</h1>
-        </header>
-
-        <!-- Role Selector -->
+        <h1>SHA-1 Message Digest Algorithm</h1>
+        
         <div class="role-selector">
-            <button id="sender-tab" class="role-tab active">Sender</button>
-            <button id="receiver-tab" class="role-tab">Receiver</button>
+            <button class="role-btn active" onclick="selectRole('sender')">Sender</button>
+            <button class="role-btn" onclick="selectRole('receiver')">Receiver</button>
         </div>
 
-        <!-- Sender Section -->
-        <section id="sender-section" class="content-section active">
-            <div class="section-content">
-                <h2>Sender Mode</h2>
-                <p class="section-description">Enter your message or upload a file to generate a SHA-1 digest</p>
-                
-                <!-- Message Input -->
-                <div class="input-group">
-                    <label for="message-input">Enter Message:</label>
-                    <textarea id="message-input" placeholder="Type any message you want to hash..."></textarea>
-                </div>
-                
-                <!-- File Upload -->
-                <div class="file-upload-section">
-                    <label>Or Upload a File:</label>
-                    <div class="file-upload-wrapper">
-                        <input type="file" id="file-input" accept="*/*">
-                        <label for="file-input" class="file-choose-btn">Choose File</label>
-                        <span id="file-status">No file</span>
-                    </div>
-                </div>
-
-                <!-- Generate Button -->
-                <button id="generate-btn" class="generate-button">Generate Digest</button>
-                
-                <!-- Digest Output -->
-                <div class="digest-section" id="digest-section" style="display: none;">
-                    <h3>Generated SHA-1 Digest:</h3>
-                    <div class="digest-display">
-                        <code id="digest-output"></code>
-                        <button id="copy-digest" class="copy-btn">Copy</button>
-                    </div>
+        <div id="sender-section" class="section active">
+            <h2>Sender</h2>
+            <div class="input-group">
+                <label for="message-input">Enter your message:</label>
+                <textarea id="message-input" placeholder="Type your message here..." rows="4"></textarea>
+            </div>
+            
+            <div class="file-upload">
+                <label for="file-input">Or upload a file:</label>
+                <input type="file" id="file-input" accept="*/*">
+                <span id="file-name"></span>
+            </div>
+            
+            <button id="generate-btn" onclick="generateDigest()">Generate Digest</button>
+            
+            <div id="digest-result" class="result-section" style="display: none;">
+                <h3>SHA-1 Digest:</h3>
+                <div class="digest-output">
+                    <span id="digest-value"></span>
+                    <button onclick="copyDigest()" class="copy-btn">Copy</button>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <!-- Receiver Section -->
-        <section id="receiver-section" class="content-section">
-            <div class="section-content">
-                <h2>Receiver Mode</h2>
-                <p class="section-description">Verify message integrity by comparing SHA-1 digests</p>
-                
-                <!-- Received Message Input -->
-                <div class="input-group">
-                    <label for="received-message">Received Message:</label>
-                    <textarea id="received-message" placeholder="Paste the message you received..."></textarea>
-                </div>
-                
-                <!-- Expected Hash Input -->
-                <div class="input-group">
-                    <label for="expected-hash">Expected SHA-1 Hash:</label>
-                    <input type="text" id="expected-hash" placeholder="Paste the SHA-1 hash you received...">
-                </div>
-
-                <!-- Verify Button -->
-                <button id="verify-btn" class="verify-button">Verify Integrity</button>
-                
-                <!-- Verification Result -->
-                <div class="verification-section" id="verification-section" style="display: none;">
-                    <div id="verification-result" class="verification-result">
-                        <span id="verification-icon"></span>
-                        <span id="verification-message"></span>
-                    </div>
-                    <div class="hash-comparison">
-                        <div class="hash-item">
-                            <label>Calculated Hash:</label>
-                            <code id="calculated-hash"></code>
-                        </div>
-                        <div class="hash-item">
-                            <label>Expected Hash:</label>
-                            <code id="displayed-expected-hash"></code>
-                        </div>
-                    </div>
-                </div>
+        <div id="receiver-section" class="section">
+            <h2>Receiver</h2>
+            <div class="input-group">
+                <label for="received-message">Received message:</label>
+                <textarea id="received-message" placeholder="Paste the received message here..." rows="4"></textarea>
             </div>
-        </section>
+            
+            <div class="input-group">
+                <label for="received-digest">Received digest:</label>
+                <input type="text" id="received-digest" placeholder="Paste the SHA-1 digest here...">
+            </div>
+            
+            <button onclick="verifyDigest()">Verify Digest</button>
+            
+            <div id="verification-result" class="result-section" style="display: none;">
+                <div id="verification-status"></div>
+            </div>
+        </div>
     </div>
 
     <script>
         // SHA-1 Implementation
         function sha1(message) {
-            function rotateLeft(n, s) {
-                return (n << s) | (n >>> (32 - s));
-            }
-
-            function toHexStr(n) {
-                let s = "";
-                for (let i = 7; i >= 0; i--) {
-                    let v = (n >>> (i * 4)) & 0x0f;
-                    s += v.toString(16);
-                }
-                return s;
-            }
-
-            function utf8Encode(str) {
-                return unescape(encodeURIComponent(str));
-            }
-
-            message = utf8Encode(message);
+            // Convert string to array of bytes
+            const msgBytes = new TextEncoder().encode(message);
+            const msgBits = msgBytes.length * 8;
             
-            const msgLength = message.length;
-            const wordArray = [];
+            // Padding
+            const paddedLength = Math.ceil((msgBits + 65) / 512) * 512;
+            const paddedBytes = new Uint8Array(paddedLength / 8);
+            paddedBytes.set(msgBytes);
+            paddedBytes[msgBytes.length] = 0x80; // Append '1' bit followed by zeros
             
-            for (let i = 0; i < msgLength - 3; i += 4) {
-                let j = message.charCodeAt(i) << 24 |
-                       message.charCodeAt(i + 1) << 16 |
-                       message.charCodeAt(i + 2) << 8 |
-                       message.charCodeAt(i + 3);
-                wordArray.push(j);
-            }
-
-            switch (msgLength % 4) {
-                case 0:
-                    wordArray.push(0x080000000);
-                    break;
-                case 1:
-                    wordArray.push(message.charCodeAt(msgLength - 1) << 24 | 0x0800000);
-                    break;
-                case 2:
-                    wordArray.push(message.charCodeAt(msgLength - 2) << 24 |
-                                  message.charCodeAt(msgLength - 1) << 16 | 0x08000);
-                    break;
-                case 3:
-                    wordArray.push(message.charCodeAt(msgLength - 3) << 24 |
-                                  message.charCodeAt(msgLength - 2) << 16 |
-                                  message.charCodeAt(msgLength - 1) << 8 | 0x80);
-                    break;
-            }
-
-            while ((wordArray.length % 16) != 14) {
-                wordArray.push(0);
-            }
-
-            wordArray.push(msgLength >>> 29);
-            wordArray.push((msgLength << 3) & 0x0ffffffff);
-
-            const w = new Array(80);
-            let H0 = 0x67452301;
-            let H1 = 0xEFCDAB89;
-            let H2 = 0x98BADCFE;
-            let H3 = 0x10325476;
-            let H4 = 0xC3D2E1F0;
-
-            for (let blockStart = 0; blockStart < wordArray.length; blockStart += 16) {
+            // Append original length as 64-bit big-endian
+            const lengthBytes = new ArrayBuffer(8);
+            const lengthView = new DataView(lengthBytes);
+            lengthView.setUint32(4, msgBits, false); // Big-endian
+            paddedBytes.set(new Uint8Array(lengthBytes), paddedBytes.length - 8);
+            
+            // Initialize hash values
+            let h0 = 0x67452301;
+            let h1 = 0xEFCDAB89;
+            let h2 = 0x98BADCFE;
+            let h3 = 0x10325476;
+            let h4 = 0xC3D2E1F0;
+            
+            // Process 512-bit chunks
+            for (let chunkStart = 0; chunkStart < paddedBytes.length; chunkStart += 64) {
+                const w = new Array(80);
+                
+                // Break chunk into sixteen 32-bit big-endian words
                 for (let i = 0; i < 16; i++) {
-                    w[i] = wordArray[blockStart + i];
+                    const offset = chunkStart + i * 4;
+                    w[i] = (paddedBytes[offset] << 24) | 
+                           (paddedBytes[offset + 1] << 16) | 
+                           (paddedBytes[offset + 2] << 8) | 
+                           paddedBytes[offset + 3];
                 }
                 
+                // Extend to 80 words
                 for (let i = 16; i < 80; i++) {
-                    w[i] = rotateLeft(w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16], 1);
+                    w[i] = leftRotate(w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16], 1);
                 }
-
-                let A = H0, B = H1, C = H2, D = H3, E = H4;
-
+                
+                // Initialize working variables
+                let a = h0, b = h1, c = h2, d = h3, e = h4;
+                
+                // Main loop
                 for (let i = 0; i < 80; i++) {
-                    let temp = rotateLeft(A, 5);
+                    let f, k;
                     
                     if (i < 20) {
-                        temp += ((B & C) | (~B & D)) + 0x5A827999;
+                        f = (b & c) | ((~b) & d);
+                        k = 0x5A827999;
                     } else if (i < 40) {
-                        temp += (B ^ C ^ D) + 0x6ED9EBA1;
+                        f = b ^ c ^ d;
+                        k = 0x6ED9EBA1;
                     } else if (i < 60) {
-                        temp += ((B & C) | (B & D) | (C & D)) + 0x8F1BBCDC;
+                        f = (b & c) | (b & d) | (c & d);
+                        k = 0x8F1BBCDC;
                     } else {
-                        temp += (B ^ C ^ D) + 0xCA62C1D6;
+                        f = b ^ c ^ d;
+                        k = 0xCA62C1D6;
                     }
                     
-                    temp += E + w[i];
-                    temp &= 0x0ffffffff;
-                    
-                    E = D;
-                    D = C;
-                    C = rotateLeft(B, 30);
-                    B = A;
-                    A = temp;
+                    const temp = (leftRotate(a, 5) + f + e + k + w[i]) >>> 0;
+                    e = d;
+                    d = c;
+                    c = leftRotate(b, 30);
+                    b = a;
+                    a = temp;
                 }
-
-                H0 = (H0 + A) & 0x0ffffffff;
-                H1 = (H1 + B) & 0x0ffffffff;
-                H2 = (H2 + C) & 0x0ffffffff;
-                H3 = (H3 + D) & 0x0ffffffff;
-                H4 = (H4 + E) & 0x0ffffffff;
+                
+                // Add chunk's hash to result
+                h0 = (h0 + a) >>> 0;
+                h1 = (h1 + b) >>> 0;
+                h2 = (h2 + c) >>> 0;
+                h3 = (h3 + d) >>> 0;
+                h4 = (h4 + e) >>> 0;
             }
-
-            return toHexStr(H0) + toHexStr(H1) + toHexStr(H2) + toHexStr(H3) + toHexStr(H4);
-        }
-
-        // File reading function
-        function readFileAsText(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result);
-                reader.onerror = reject;
-                reader.readAsText(file);
-            });
-        }
-
-        // Tab switching functionality
-        document.getElementById('sender-tab').addEventListener('click', function() {
-            document.getElementById('sender-tab').classList.add('active');
-            document.getElementById('receiver-tab').classList.remove('active');
-            document.getElementById('sender-section').classList.add('active');
-            document.getElementById('receiver-section').classList.remove('active');
-        });
-
-        document.getElementById('receiver-tab').addEventListener('click', function() {
-            document.getElementById('receiver-tab').classList.add('active');
-            document.getElementById('sender-tab').classList.remove('active');
-            document.getElementById('receiver-section').classList.add('active');
-            document.getElementById('sender-section').classList.remove('active');
-        });
-
-        // File input handling
-        document.getElementById('file-input').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            const status = document.getElementById('file-status');
             
-            if (file) {
-                status.textContent = file.name;
-                status.classList.add('file-selected');
-                // Clear message input when file is selected
-                document.getElementById('message-input').value = '';
-            } else {
-                status.textContent = 'No file';
-                status.classList.remove('file-selected');
-            }
-        });
-
-        // Message input handling
-        document.getElementById('message-input').addEventListener('input', function() {
-            if (this.value.trim()) {
-                // Clear file input when message is typed
-                document.getElementById('file-input').value = '';
-                document.getElementById('file-status').textContent = 'No file';
-                document.getElementById('file-status').classList.remove('file-selected');
-            }
-        });
-
-        // Generate digest functionality
-        document.getElementById('generate-btn').addEventListener('click', async function() {
+            // Convert to hex string
+            return [h0, h1, h2, h3, h4]
+                .map(h => h.toString(16).padStart(8, '0'))
+                .join('');
+        }
+        
+        function leftRotate(value, amount) {
+            return ((value << amount) | (value >>> (32 - amount))) >>> 0;
+        }
+        
+        // UI Functions
+        function selectRole(role) {
+            const buttons = document.querySelectorAll('.role-btn');
+            const sections = document.querySelectorAll('.section');
+            
+            buttons.forEach(btn => btn.classList.remove('active'));
+            sections.forEach(section => section.classList.remove('active'));
+            
+            document.querySelector(`[onclick="selectRole('${role}')"]`).classList.add('active');
+            document.getElementById(`${role}-section`).classList.add('active');
+        }
+        
+        function generateDigest() {
             const messageInput = document.getElementById('message-input');
             const fileInput = document.getElementById('file-input');
-            const digestSection = document.getElementById('digest-section');
-            const digestOutput = document.getElementById('digest-output');
+            const resultSection = document.getElementById('digest-result');
+            const digestValue = document.getElementById('digest-value');
             
-            let content = '';
-            
-            // Show loading state
-            this.textContent = 'Generating...';
-            this.disabled = true;
-            
-            try {
-                if (fileInput.files[0]) {
-                    content = await readFileAsText(fileInput.files[0]);
-                } else if (messageInput.value.trim()) {
-                    content = messageInput.value.trim();
-                } else {
-                    throw new Error('Please enter a message or select a file');
-                }
-                
-                const hash = sha1(content);
-                digestOutput.textContent = hash;
-                digestSection.style.display = 'block';
-                digestSection.scrollIntoView({ behavior: 'smooth' });
-                
-            } catch (error) {
-                alert('Error: ' + error.message);
-            } finally {
-                this.textContent = 'Generate Digest';
-                this.disabled = false;
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    const digest = sha1(content);
+                    digestValue.textContent = digest;
+                    resultSection.style.display = 'block';
+                };
+                reader.readAsText(file);
+            } else if (messageInput.value.trim()) {
+                const digest = sha1(messageInput.value);
+                digestValue.textContent = digest;
+                resultSection.style.display = 'block';
+            } else {
+                alert('Please enter a message or upload a file.');
             }
-        });
-
-        // Copy digest functionality
-        document.getElementById('copy-digest').addEventListener('click', function() {
-            const digestOutput = document.getElementById('digest-output');
-            navigator.clipboard.writeText(digestOutput.textContent).then(() => {
-                const originalText = this.textContent;
-                this.textContent = 'Copied!';
-                this.classList.add('copied');
-                setTimeout(() => {
-                    this.textContent = originalText;
-                    this.classList.remove('copied');
-                }, 1500);
-            });
-        });
-
-        // Receiver verification functionality
-        document.getElementById('verify-btn').addEventListener('click', function() {
-            const receivedMessage = document.getElementById('received-message').value.trim();
-            const expectedHash = document.getElementById('expected-hash').value.trim();
-            const verificationSection = document.getElementById('verification-section');
+        }
+        
+        function verifyDigest() {
+            const receivedMessage = document.getElementById('received-message').value;
+            const receivedDigest = document.getElementById('received-digest').value.toLowerCase();
             const verificationResult = document.getElementById('verification-result');
-            const verificationIcon = document.getElementById('verification-icon');
-            const verificationMessage = document.getElementById('verification-message');
-            const calculatedHashDisplay = document.getElementById('calculated-hash');
-            const expectedHashDisplay = document.getElementById('displayed-expected-hash');
+            const verificationStatus = document.getElementById('verification-status');
             
-            if (!receivedMessage || !expectedHash) {
-                alert('Please enter both the message and the expected hash');
+            if (!receivedMessage.trim() || !receivedDigest.trim()) {
+                alert('Please enter both the message and digest.');
                 return;
             }
             
-            const calculatedHash = sha1(receivedMessage);
-            const isValid = calculatedHash.toLowerCase() === expectedHash.toLowerCase();
+            const calculatedDigest = sha1(receivedMessage);
+            const isValid = calculatedDigest === receivedDigest;
             
-            calculatedHashDisplay.textContent = calculatedHash;
-            expectedHashDisplay.textContent = expectedHash;
+            verificationStatus.innerHTML = isValid ? 
+                '<span class="success">✓ Digest is valid! Message integrity confirmed.</span>' :
+                '<span class="error">✗ Digest is invalid! Message may have been altered.</span>';
             
-            if (isValid) {
-                verificationIcon.textContent = '✓';
-                verificationMessage.textContent = 'Message integrity verified! The hash matches perfectly.';
-                verificationResult.className = 'verification-result success';
+            verificationResult.style.display = 'block';
+        }
+        
+        function copyDigest() {
+            const digestValue = document.getElementById('digest-value').textContent;
+            navigator.clipboard.writeText(digestValue).then(() => {
+                const copyBtn = document.querySelector('.copy-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            });
+        }  
+        // File input handler
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const fileName = document.getElementById('file-name');
+            if (e.target.files.length > 0) {
+                fileName.textContent = `Selected: ${e.target.files[0].name}`;
+                document.getElementById('message-input').value = '';
             } else {
-                verificationIcon.textContent = '✗';
-                verificationMessage.textContent = 'Verification failed! The message may have been altered.';
-                verificationResult.className = 'verification-result error';
+                fileName.textContent = '';
             }
-            
-            verificationSection.style.display = 'block';
-            verificationSection.scrollIntoView({ behavior: 'smooth' });
+        });
+        
+        // Clear file when typing in message input
+        document.getElementById('message-input').addEventListener('input', function() {
+            if (this.value.trim()) {
+                document.getElementById('file-input').value = '';
+                document.getElementById('file-name').textContent = '';
+            }
         });
     </script>
 </body>
