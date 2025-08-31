@@ -3,67 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHA-1 Hash Generator</title>
+    <title>SHA-1 Message Digest Algorithm</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>SHA-1 Hash Generator</h1>
-            <p>Generate SHA-1 hashes for messages and files</p>
+        <!-- Bright Title -->
+        <header class="main-header">
+            <h1>SHA-1 Message Digest Algorithm</h1>
         </header>
 
-        <div class="main-content">
-            <!-- Sender Section -->
-            <section class="sender-section">
-                <h2>Sender</h2>
+        <!-- Role Selector -->
+        <div class="role-selector">
+            <button id="sender-tab" class="role-tab active">Sender</button>
+            <button id="receiver-tab" class="role-tab">Receiver</button>
+        </div>
+
+        <!-- Sender Section -->
+        <section id="sender-section" class="content-section active">
+            <div class="section-content">
+                <h2>Sender Mode</h2>
+                <p class="section-description">Enter your message or upload a file to generate a SHA-1 digest</p>
+                
+                <!-- Message Input -->
                 <div class="input-group">
                     <label for="message-input">Enter Message:</label>
-                    <textarea id="message-input" placeholder="Type your message here..."></textarea>
+                    <textarea id="message-input" placeholder="Type any message you want to hash..."></textarea>
                 </div>
                 
-                <div class="file-upload-group">
-                    <label for="file-input">Upload File:</label>
-                    <div class="file-input-wrapper">
+                <!-- File Upload -->
+                <div class="file-upload-section">
+                    <label>Or Upload a File:</label>
+                    <div class="file-upload-wrapper">
                         <input type="file" id="file-input" accept="*/*">
-                        <label for="file-input" class="file-label">
-                            Choose File
-                        </label>
-                        <span id="file-status">No file selected</span>
+                        <label for="file-input" class="file-choose-btn">Choose File</label>
+                        <span id="file-status">No file</span>
                     </div>
                 </div>
 
+                <!-- Generate Button -->
                 <button id="generate-btn" class="generate-button">Generate Digest</button>
                 
-                <div class="output-group">
-                    <label>Generated SHA-1 Hash:</label>
-                    <div id="hash-output" class="hash-display">
-                        Hash will appear here...
+                <!-- Digest Output -->
+                <div class="digest-section" id="digest-section" style="display: none;">
+                    <h3>Generated SHA-1 Digest:</h3>
+                    <div class="digest-display">
+                        <code id="digest-output"></code>
+                        <button id="copy-digest" class="copy-btn">Copy</button>
                     </div>
-                    <button id="copy-btn" class="copy-button" style="display: none;">Copy Hash</button>
                 </div>
-            </section>
+            </div>
+        </section>
 
-            <!-- Receiver Section -->
-            <section class="receiver-section">
-                <h2>Receiver</h2>
+        <!-- Receiver Section -->
+        <section id="receiver-section" class="content-section">
+            <div class="section-content">
+                <h2>Receiver Mode</h2>
+                <p class="section-description">Verify message integrity by comparing SHA-1 digests</p>
+                
+                <!-- Received Message Input -->
                 <div class="input-group">
                     <label for="received-message">Received Message:</label>
-                    <textarea id="received-message" placeholder="Paste the received message here..."></textarea>
+                    <textarea id="received-message" placeholder="Paste the message you received..."></textarea>
                 </div>
                 
+                <!-- Expected Hash Input -->
                 <div class="input-group">
-                    <label for="received-hash">Received Hash:</label>
-                    <input type="text" id="received-hash" placeholder="Paste the received SHA-1 hash here...">
+                    <label for="expected-hash">Expected SHA-1 Hash:</label>
+                    <input type="text" id="expected-hash" placeholder="Paste the SHA-1 hash you received...">
                 </div>
 
-                <button id="verify-btn" class="verify-button">Verify Hash</button>
+                <!-- Verify Button -->
+                <button id="verify-btn" class="verify-button">Verify Integrity</button>
                 
-                <div class="verification-result" id="verification-result">
-                    <span id="verification-status">Verification result will appear here...</span>
+                <!-- Verification Result -->
+                <div class="verification-section" id="verification-section" style="display: none;">
+                    <div id="verification-result" class="verification-result">
+                        <span id="verification-icon"></span>
+                        <span id="verification-message"></span>
+                    </div>
+                    <div class="hash-comparison">
+                        <div class="hash-item">
+                            <label>Calculated Hash:</label>
+                            <code id="calculated-hash"></code>
+                        </div>
+                        <div class="hash-item">
+                            <label>Expected Hash:</label>
+                            <code id="displayed-expected-hash"></code>
+                        </div>
+                    </div>
                 </div>
-            </section>
-        </div>
+            </div>
+        </section>
     </div>
 
     <script>
@@ -101,23 +132,19 @@
 
             switch (msgLength % 4) {
                 case 0:
-                    let i = 0x080000000;
-                    wordArray.push(i);
+                    wordArray.push(0x080000000);
                     break;
                 case 1:
-                    let j = message.charCodeAt(msgLength - 1) << 24 | 0x0800000;
-                    wordArray.push(j);
+                    wordArray.push(message.charCodeAt(msgLength - 1) << 24 | 0x0800000);
                     break;
                 case 2:
-                    let k = message.charCodeAt(msgLength - 2) << 24 |
-                           message.charCodeAt(msgLength - 1) << 16 | 0x08000;
-                    wordArray.push(k);
+                    wordArray.push(message.charCodeAt(msgLength - 2) << 24 |
+                                  message.charCodeAt(msgLength - 1) << 16 | 0x08000);
                     break;
                 case 3:
-                    let l = message.charCodeAt(msgLength - 3) << 24 |
-                           message.charCodeAt(msgLength - 2) << 16 |
-                           message.charCodeAt(msgLength - 1) << 8 | 0x80;
-                    wordArray.push(l);
+                    wordArray.push(message.charCodeAt(msgLength - 3) << 24 |
+                                  message.charCodeAt(msgLength - 2) << 16 |
+                                  message.charCodeAt(msgLength - 1) << 8 | 0x80);
                     break;
             }
 
@@ -189,83 +216,130 @@
             });
         }
 
-        // Event listeners
+        // Tab switching functionality
+        document.getElementById('sender-tab').addEventListener('click', function() {
+            document.getElementById('sender-tab').classList.add('active');
+            document.getElementById('receiver-tab').classList.remove('active');
+            document.getElementById('sender-section').classList.add('active');
+            document.getElementById('receiver-section').classList.remove('active');
+        });
+
+        document.getElementById('receiver-tab').addEventListener('click', function() {
+            document.getElementById('receiver-tab').classList.add('active');
+            document.getElementById('sender-tab').classList.remove('active');
+            document.getElementById('receiver-section').classList.add('active');
+            document.getElementById('sender-section').classList.remove('active');
+        });
+
+        // File input handling
         document.getElementById('file-input').addEventListener('change', function(e) {
             const file = e.target.files[0];
             const status = document.getElementById('file-status');
             
             if (file) {
                 status.textContent = file.name;
-                status.style.color = '#4CAF50';
+                status.classList.add('file-selected');
+                // Clear message input when file is selected
+                document.getElementById('message-input').value = '';
             } else {
-                status.textContent = 'No file selected';
-                status.style.color = '#666';
+                status.textContent = 'No file';
+                status.classList.remove('file-selected');
             }
         });
 
+        // Message input handling
+        document.getElementById('message-input').addEventListener('input', function() {
+            if (this.value.trim()) {
+                // Clear file input when message is typed
+                document.getElementById('file-input').value = '';
+                document.getElementById('file-status').textContent = 'No file';
+                document.getElementById('file-status').classList.remove('file-selected');
+            }
+        });
+
+        // Generate digest functionality
         document.getElementById('generate-btn').addEventListener('click', async function() {
             const messageInput = document.getElementById('message-input');
             const fileInput = document.getElementById('file-input');
-            const hashOutput = document.getElementById('hash-output');
-            const copyBtn = document.getElementById('copy-btn');
+            const digestSection = document.getElementById('digest-section');
+            const digestOutput = document.getElementById('digest-output');
             
             let content = '';
             
-            if (fileInput.files[0]) {
-                try {
+            // Show loading state
+            this.textContent = 'Generating...';
+            this.disabled = true;
+            
+            try {
+                if (fileInput.files[0]) {
                     content = await readFileAsText(fileInput.files[0]);
-                } catch (error) {
-                    hashOutput.textContent = 'Error reading file: ' + error.message;
-                    hashOutput.style.color = '#f44336';
-                    return;
+                } else if (messageInput.value.trim()) {
+                    content = messageInput.value.trim();
+                } else {
+                    throw new Error('Please enter a message or select a file');
                 }
-            } else if (messageInput.value.trim()) {
-                content = messageInput.value.trim();
-            } else {
-                hashOutput.textContent = 'Please enter a message or select a file';
-                hashOutput.style.color = '#f44336';
-                return;
+                
+                const hash = sha1(content);
+                digestOutput.textContent = hash;
+                digestSection.style.display = 'block';
+                digestSection.scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                this.textContent = 'Generate Digest';
+                this.disabled = false;
             }
-            
-            const hash = sha1(content);
-            hashOutput.textContent = hash;
-            hashOutput.style.color = '#4CAF50';
-            copyBtn.style.display = 'inline-block';
         });
 
-        document.getElementById('copy-btn').addEventListener('click', function() {
-            const hashOutput = document.getElementById('hash-output');
-            navigator.clipboard.writeText(hashOutput.textContent);
-            
-            const originalText = this.textContent;
-            this.textContent = 'Copied!';
-            setTimeout(() => {
-                this.textContent = originalText;
-            }, 1000);
+        // Copy digest functionality
+        document.getElementById('copy-digest').addEventListener('click', function() {
+            const digestOutput = document.getElementById('digest-output');
+            navigator.clipboard.writeText(digestOutput.textContent).then(() => {
+                const originalText = this.textContent;
+                this.textContent = 'Copied!';
+                this.classList.add('copied');
+                setTimeout(() => {
+                    this.textContent = originalText;
+                    this.classList.remove('copied');
+                }, 1500);
+            });
         });
 
+        // Receiver verification functionality
         document.getElementById('verify-btn').addEventListener('click', function() {
             const receivedMessage = document.getElementById('received-message').value.trim();
-            const receivedHash = document.getElementById('received-hash').value.trim();
+            const expectedHash = document.getElementById('expected-hash').value.trim();
+            const verificationSection = document.getElementById('verification-section');
             const verificationResult = document.getElementById('verification-result');
-            const verificationStatus = document.getElementById('verification-status');
+            const verificationIcon = document.getElementById('verification-icon');
+            const verificationMessage = document.getElementById('verification-message');
+            const calculatedHashDisplay = document.getElementById('calculated-hash');
+            const expectedHashDisplay = document.getElementById('displayed-expected-hash');
             
-            if (!receivedMessage || !receivedHash) {
-                verificationStatus.textContent = 'Please enter both message and hash';
-                verificationResult.className = 'verification-result error';
+            if (!receivedMessage || !expectedHash) {
+                alert('Please enter both the message and the expected hash');
                 return;
             }
             
             const calculatedHash = sha1(receivedMessage);
-            const isValid = calculatedHash.toLowerCase() === receivedHash.toLowerCase();
+            const isValid = calculatedHash.toLowerCase() === expectedHash.toLowerCase();
+            
+            calculatedHashDisplay.textContent = calculatedHash;
+            expectedHashDisplay.textContent = expectedHash;
             
             if (isValid) {
-                verificationStatus.textContent = '✓ Hash verification successful! Message integrity confirmed.';
+                verificationIcon.textContent = '✓';
+                verificationMessage.textContent = 'Message integrity verified! The hash matches perfectly.';
                 verificationResult.className = 'verification-result success';
             } else {
-                verificationStatus.textContent = '✗ Hash verification failed! Message may have been tampered with.';
+                verificationIcon.textContent = '✗';
+                verificationMessage.textContent = 'Verification failed! The message may have been altered.';
                 verificationResult.className = 'verification-result error';
             }
+            
+            verificationSection.style.display = 'block';
+            verificationSection.scrollIntoView({ behavior: 'smooth' });
         });
     </script>
 </body>
