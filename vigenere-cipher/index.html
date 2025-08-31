@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vigenère Cipher Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Vigenère Cipher Tool</h1>
+            <p>Encrypt and decrypt text using the classic Vigenère cipher</p>
+        </header>
+
+        <div class="main-content">
+            <div class="input-section">
+                <h2>Input Options</h2>
+                
+                <div class="input-method">
+                    <label for="input-toggle">Choose Input Method:</label>
+                    <select id="input-toggle" onchange="toggleInputMethod()">
+                        <option value="text">Direct Text Input</option>
+                        <option value="file">File Upload</option>
+                    </select>
+                </div>
+
+                <div id="text-input-section" class="input-group">
+                    <label for="text-input">Enter Text:</label>
+                    <textarea id="text-input" placeholder="Enter your text here..." rows="6"></textarea>
+                </div>
+
+                <div id="file-input-section" class="input-group" style="display: none;">
+                    <label for="file-input">Upload Text File:</label>
+                    <input type="file" id="file-input" accept=".txt" onchange="handleFileUpload(event)">
+                    <div id="file-preview" class="file-preview"></div>
+                </div>
+
+                <div class="input-group">
+                    <label for="key-input">Encryption Key:</label>
+                    <input type="text" id="key-input" placeholder="Enter your key (letters only)" pattern="[A-Za-z]+" title="Only letters allowed">
+                    <small>Key should contain only letters (A-Z)</small>
+                </div>
+
+                <div class="button-group">
+                    <button onclick="encryptText()" class="btn btn-encrypt">Encrypt</button>
+                    <button onclick="decryptText()" class="btn btn-decrypt">Decrypt</button>
+                    <button onclick="clearAll()" class="btn btn-clear">Clear All</button>
+                </div>
+            </div>
+
+            <div class="output-section">
+                <h2>Result</h2>
+                <div class="result-container">
+                    <div id="result-output" class="result-text">
+                        Your encrypted/decrypted text will appear here...
+                    </div>
+                    <button onclick="copyResult()" class="btn btn-copy" id="copy-btn" style="display: none;">Copy Result</button>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2>How it Works</h2>
+                <div class="info-content">
+                    <p><strong>Encryption:</strong> Each letter in your text is shifted forward in the alphabet by the corresponding letter in your key.</p>
+                    <p><strong>Decryption:</strong> Each letter is shifted backward by the corresponding key letter to recover the original text.</p>
+                    <p><strong>Key Repetition:</strong> If your text is longer than your key, the key automatically repeats.</p>
+                    <p><strong>Non-alphabetic characters:</strong> Numbers, spaces, and punctuation remain unchanged.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleInputMethod() {
+            const toggle = document.getElementById('input-toggle');
+            const textSection = document.getElementById('text-input-section');
+            const fileSection = document.getElementById('file-input-section');
+            
+            if (toggle.value === 'file') {
+                textSection.style.display = 'none';
+                fileSection.style.display = 'block';
+            } else {
+                textSection.style.display = 'block';
+                fileSection.style.display = 'none';
+            }
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            const preview = document.getElementById('file-preview');
+            
+            if (file) {
+                if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const content = e.target.result;
+                        preview.innerHTML = `
+                            <h4>File Content Preview:</h4>
+                            <div class="file-content">${content.substring(0, 200)}${content.length > 200 ? '...' : ''}</div>
+                            <small>File: ${file.name} (${file.size} bytes)</small>
+                        `;
+                        // Store the full content for processing
+                        preview.dataset.fullContent = content;
+                    };
+                    reader.readAsText(file);
+                } else {
+                    preview.innerHTML = '<p class="error">Please select a valid text file (.txt)</p>';
+                }
+            }
+        }
+
+        function getInputText() {
+            const inputMethod = document.getElementById('input-toggle').value;
+            
+            if (inputMethod === 'file') {
+                const preview = document.getElementById('file-preview');
+                return preview.dataset.fullContent || '';
+            } else {
+                return document.getElementById('text-input').value;
+            }
+        }
+
+        function prepareKey(text, key) {
+            if (!key) return '';
+            
+            // Remove non-alphabetic characters from key and convert to uppercase
+            key = key.replace(/[^A-Za-z]/g, '').toUpperCase();
+            
+            // Count only alphabetic characters in text for key alignment
+            const alphabeticCount = text.replace(/[^A-Za-z]/g, '').length;
+            
+            // Repeat key to match alphabetic character count
+            let repeatedKey = '';
+            for (let i = 0; i < alphabeticCount; i++) {
+                repeatedKey += key[i % key.length];
+            }
+            
+            return repeatedKey;
+        }
+
+        function vigenereEncrypt(text, key) {
+            if (!text || !key) return '';
+            
+            const preparedKey = prepareKey(text, key);
+            let result = '';
+            let keyIndex = 0;
+            
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                
+                if (/[A-Za-z]/.test(char)) {
+                    const isUpperCase = char === char.toUpperCase();
+                    const charCode = char.toUpperCase().charCodeAt(0) - 65;
+                    const keyCode = preparedKey[keyIndex].charCodeAt(0) - 65;
+                    
+                    const encryptedCode = (charCode + keyCode) % 26;
+                    const encryptedChar = String.fromCharCode(encryptedCode + 65);
+                    
+                    result += isUpperCase ? encryptedChar : encryptedChar.toLowerCase();
+                    keyIndex++;
+                } else {
+                    result += char; // Keep non-alphabetic characters unchanged
+                }
+            }
+            
+            return result;
+        }
+
+        function vigenereDecrypt(text, key) {
+            if (!text || !key) return '';
+            
+            const preparedKey = prepareKey(text, key);
+            let result = '';
+            let keyIndex = 0;
+            
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                
+                if (/[A-Za-z]/.test(char)) {
+                    const isUpperCase = char === char.toUpperCase();
+                    const charCode = char.toUpperCase().charCodeAt(0) - 65;
+                    const keyCode = preparedKey[keyIndex].charCodeAt(0) - 65;
+                    
+                    const decryptedCode = (charCode - keyCode + 26) % 26;
+                    const decryptedChar = String.fromCharCode(decryptedCode + 65);
+                    
+                    result += isUpperCase ? decryptedChar : decryptedChar.toLowerCase();
+                    keyIndex++;
+                } else {
+                    result += char; // Keep non-alphabetic characters unchanged
+                }
+            }
+            
+            return result;
+        }
+
+        function validateInputs() {
+            const text = getInputText();
+            const key = document.getElementById('key-input').value;
+            
+            if (!text.trim()) {
+                alert('Please enter some text or upload a file.');
+                return false;
+            }
+            
+            if (!key.trim()) {
+                alert('Please enter an encryption key.');
+                return false;
+            }
+            
+            if (!/^[A-Za-z]+$/.test(key.trim())) {
+                alert('Key should contain only letters (A-Z).');
+                return false;
+            }
+            
+            return true;
+        }
+
+        function encryptText() {
+            if (!validateInputs()) return;
+            
+            const text = getInputText();
+            const key = document.getElementById('key-input').value.trim();
+            
+            const encrypted = vigenereEncrypt(text, key);
+            displayResult(encrypted, 'Encrypted Text');
+        }
+
+        function decryptText() {
+            if (!validateInputs()) return;
+            
+            const text = getInputText();
+            const key = document.getElementById('key-input').value.trim();
+            
+            const decrypted = vigenereDecrypt(text, key);
+            displayResult(decrypted, 'Decrypted Text');
+        }
+
+        function displayResult(result, title) {
+            const output = document.getElementById('result-output');
+            const copyBtn = document.getElementById('copy-btn');
+            
+            output.innerHTML = `
+                <h3>${title}:</h3>
+                <div class="result-content">${result}</div>
+            `;
+            
+            // Store result for copying
+            output.dataset.result = result;
+            copyBtn.style.display = 'block';
+        }
+
+        function copyResult() {
+            const output = document.getElementById('result-output');
+            const result = output.dataset.result;
+            
+            if (result) {
+                navigator.clipboard.writeText(result).then(() => {
+                    const copyBtn = document.getElementById('copy-btn');
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = 'Copied!';
+                    copyBtn.classList.add('copied');
+                    
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                }).catch(() => {
+                    alert('Failed to copy to clipboard. Please copy manually.');
+                });
+            }
+        }
+
+        function clearAll() {
+            document.getElementById('text-input').value = '';
+            document.getElementById('key-input').value = '';
+            document.getElementById('file-input').value = '';
+            document.getElementById('file-preview').innerHTML = '';
+            document.getElementById('result-output').innerHTML = 'Your encrypted/decrypted text will appear here...';
+            document.getElementById('copy-btn').style.display = 'none';
+            
+            // Reset to text input method
+            document.getElementById('input-toggle').value = 'text';
+            toggleInputMethod();
+        }
+
+        // Allow Enter key to trigger encryption
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('key-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    encryptText();
+                }
+            });
+            
+            document.getElementById('text-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    encryptText();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steganography Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="icon-container">
+                <span class="icon">🕵️‍♂️</span>
+            </div>
+            <h1 class="title">Steganography Tool</h1>
+            <p class="subtitle">Hide and reveal secret messages within images</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <div class="tab-container">
+                <button id="encode-tab" class="tab-button active" onclick="switchTab('encode')">
+                    🔒 Encode Message
+                </button>
+                <button id="decode-tab" class="tab-button" onclick="switchTab('decode')">
+                    🔓 Decode Message
+                </button>
+            </div>
+        </div>
+
+        <!-- Error Display -->
+        <div id="error-container" class="error-container" style="display: none;">
+            <div class="error-content">
+                <span class="error-icon">⚠️</span>
+                <span id="error-message" class="error-text"></span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- ENCODE SECTION -->
+            <div id="encode-section" class="section-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">🔒 Encode Secret Message</h2>
+                </div>
+                
+                <div class="panel-content">
+                    <!-- File Upload for Encoding -->
+                    <div class="input-group">
+                        <label class="input-label">Select Cover Image</label>
+                        <div class="file-upload-container">
+                            <input type="file" id="encode-file-input" accept="image/*" onchange="handleEncodeImageChange(event)" class="file-input">
+                            <div id="encode-file-display" class="file-upload-area">
+                                <div class="upload-icon">📁</div>
+                                <p class="upload-text">Click to choose image file</p>
+                                <p class="upload-subtext">PNG, JPG, JPEG supported</p>
+                            </div>
+                        </div>
+                        <div id="encode-image-preview" class="image-preview" style="display: none;"></div>
+                    </div>
+
+                    <!-- Message Input -->
+                    <div class="input-group">
+                        <label class="input-label">Secret Message</label>
+                        <textarea id="encode-message" rows="4" class="message-input" placeholder="Enter your secret message here..."></textarea>
+                    </div>
+
+                    <!-- Encode Button -->
+                    <button class="action-button encode-button" onclick="encodeMessage()">
+                        🔐 Encode Message Into Image
+                    </button>
+
+                    <!-- Hidden Canvases -->
+                    <canvas id="original-canvas" class="hidden-canvas"></canvas>
+                    <canvas id="message-canvas" class="hidden-canvas"></canvas>
+
+                    <!-- Encoded Result -->
+                    <div id="encoded-result" class="result-container encode-result" style="display: none;">
+                        <h3 class="result-title">✅ Message Successfully Encoded!</h3>
+                        <div class="result-content">
+                            <img id="encoded-image" alt="Encoded Result" class="result-image">
+                            <a id="download-link" class="download-button">
+                                💾 Download Encoded Image
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DECODE SECTION -->
+            <div id="decode-section" class="section-panel" style="display: none;">
+                <div class="panel-header decode-header">
+                    <h2 class="panel-title">🔓 Decode Hidden Message</h2>
+                </div>
+                
+                <div class="panel-content">
+                    <!-- File Upload for Decoding -->
+                    <div class="input-group">
+                        <label class="input-label">Select Encoded Image</label>
+                        <div class="file-upload-container">
+                            <input type="file" id="decode-file-input" accept="image/*" onchange="handleDecodeImageChange(event)" class="file-input">
+                            <div class="file-upload-area">
+                                <div class="upload-icon">🔍</div>
+                                <p class="upload-text">Click to choose encoded image</p>
+                                <p class="upload-subtext">Upload image with hidden message</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Decode Button -->
+                    <button class="action-button decode-button" onclick="decodeMessage()">
+                        🔍 Extract Hidden Message
+                    </button>
+
+                    <!-- Hidden Canvas -->
+                    <canvas id="decode-canvas" class="hidden-canvas"></canvas>
+
+                    <!-- Decode Result -->
+                    <div id="decoded-result" class="result-container decode-result" style="display: none;">
+                        <h3 class="result-title">🎉 Hidden Message Revealed!</h3>
+                        <textarea id="decoded-message" class="decoded-textarea" rows="4" readonly placeholder="No message found..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-content">
+                <span class="footer-icon">💡</span>
+                <span class="footer-text">Secure • Private • No data stored on servers</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let encodedBlobUrl = '';
+
+        function switchTab(tab) {
+            const encodeTab = document.getElementById('encode-tab');
+            const decodeTab = document.getElementById('decode-tab');
+            const encodeSection = document.getElementById('encode-section');
+            const decodeSection = document.getElementById('decode-section');
+            
+            // Clear error when switching tabs
+            hideError();
+            
+            if (tab === 'encode') {
+                encodeTab.classList.add('active');
+                decodeTab.classList.remove('active');
+                encodeSection.style.display = 'block';
+                decodeSection.style.display = 'none';
+            } else {
+                decodeTab.classList.add('active');
+                encodeTab.classList.remove('active');
+                decodeSection.style.display = 'block';
+                encodeSection.style.display = 'none';
+            }
+        }
+
+        function showError(message) {
+            const errorContainer = document.getElementById('error-container');
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.textContent = message;
+            errorContainer.style.display = 'block';
+        }
+
+        function hideError() {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.style.display = 'none';
+        }
+
+        function previewImage(file, canvas, callback) {
+            const reader = new FileReader();
+            const image = new Image();
+            const context = canvas.getContext('2d');
+
+            if (!file || !context) {
+                showError('Invalid file or canvas');
+                return;
+            }
+
+            reader.onload = (e) => {
+                if (e.target?.result) {
+                    image.onload = () => {
+                        canvas.width = image.width;
+                        canvas.height = image.height;
+                        context.drawImage(image, 0, 0);
+                        callback();
+                    };
+                    image.src = e.target.result;
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleEncodeImageChange(event) {
+            const file = event.target.files[0];
+            const canvas = document.getElementById('original-canvas');
+            const preview = document.getElementById('encode-image-preview');
+            
+            if (file && canvas) {
+                hideError();
+                document.getElementById('encoded-result').style.display = 'none';
+                
+                previewImage(file, canvas, () => {
+                    // Show image preview
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        preview.innerHTML = `
+                            <div class="preview-content">
+                                <img src="${e.target.result}" alt="Selected cover image" class="preview-img">
+                                <div class="preview-info">
+                                    <p class="preview-status">✅ Cover image selected</p>
+                                    <button class="change-button" onclick="clearEncodeImage()">Change Image</button>
+                                </div>
+                            </div>
+                        `;
+                        preview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
+
+        function handleDecodeImageChange(event) {
+            const file = event.target.files[0];
+            const canvas = document.getElementById('decode-canvas');
+            
+            if (file && canvas) {
+                hideError();
+                document.getElementById('decoded-result').style.display = 'none';
+                
+                previewImage(file, canvas, () => {
+                    console.log('Decode image preview ready');
+                });
+            }
+        }
+
+        function clearEncodeImage() {
+            document.getElementById('encode-file-input').value = '';
+            document.getElementById('encode-image-preview').style.display = 'none';
+            document.getElementById('encoded-result').style.display = 'none';
+        }
+
+        function encodeMessage() {
+            console.log('Starting encode process...');
+            hideError();
+            document.getElementById('encoded-result').style.display = 'none';
+
+            const text = document.getElementById('encode-message').value.trim();
+            const originalCanvas = document.getElementById('original-canvas');
+            const messageCanvas = document.getElementById('message-canvas');
+
+            if (!text) return showError('Please enter a message to encode');
+            if (!originalCanvas || !messageCanvas) return showError('Image canvas not ready');
+
+            const originalContext = originalCanvas.getContext('2d');
+            const messageContext = messageCanvas.getContext('2d');
+
+            if (!originalContext || !messageContext) return showError('Canvas context not available');
+
+            const width = originalCanvas.width;
+            const height = originalCanvas.height;
+            
+            if (width === 0 || height === 0) return showError('Please select an image first');
+            
+            const imageData = originalContext.getImageData(0, 0, width, height);
+            const pixel = imageData.data;
+
+            if (text.length * 8 > width * height * 3) {
+                return showError(`Text too long for selected image. Max characters: ${Math.floor((width * height * 3) / 8)}`);
+            }
+
+            // Reset all LSBs to 0
+            for (let i = 0; i < pixel.length; i += 4) {
+                for (let j = 0; j < 3; j++) {
+                    pixel[i + j] &= 254;
+                }
+            }
+
+            // Convert message to binary
+            let binaryMessage = '';
+            for (const ch of text) {
+                let bin = ch.charCodeAt(0).toString(2).padStart(8, '0');
+                binaryMessage += bin;
+            }
+
+            // Embed binary message in LSBs
+            let counter = 0;
+            for (let i = 0; i < pixel.length && counter < binaryMessage.length; i += 4) {
+                for (let j = 0; j < 3 && counter < binaryMessage.length; j++) {
+                    pixel[i + j] |= parseInt(binaryMessage[counter]);
+                    counter++;
+                }
+            }
+
+            messageCanvas.width = width;
+            messageCanvas.height = height;
+            messageContext.putImageData(imageData, 0, 0);
+
+            // Export the image
+            messageCanvas.toBlob((blob) => {
+                if (blob) {
+                    if (encodedBlobUrl) {
+                        URL.revokeObjectURL(encodedBlobUrl);
+                    }
+                    encodedBlobUrl = URL.createObjectURL(blob);
+                    
+                    const encodedImage = document.getElementById('encoded-image');
+                    const downloadLink = document.getElementById('download-link');
+                    
+                    encodedImage.src = encodedBlobUrl;
+                    downloadLink.href = encodedBlobUrl;
+                    downloadLink.download = 'encoded_image.png';
+                    
+                    document.getElementById('encoded-result').style.display = 'block';
+                }
+            });
+
+            console.log('Encoding complete.');
+        }
+
+        function decodeMessage() {
+            console.log('Starting decode process...');
+            hideError();
+            document.getElementById('decoded-result').style.display = 'none';
+
+            const decodeCanvas = document.getElementById('decode-canvas');
+            if (!decodeCanvas) return showError('Please select an image first');
+
+            const ctx = decodeCanvas.getContext('2d');
+            if (!ctx) return showError('Cannot get canvas context');
+
+            const { width, height } = decodeCanvas;
+            if (width === 0 || height === 0) return showError('Please select an image first');
+            
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const pixel = imageData.data;
+
+            let binaryMessage = '';
+            for (let i = 0; i < pixel.length; i += 4) {
+                for (let j = 0; j < 3; j++) {
+                    binaryMessage += pixel[i + j] % 2;
+                }
+            }
+
+            let output = '';
+            for (let i = 0; i + 8 <= binaryMessage.length; i += 8) {
+                const byte = binaryMessage.slice(i, i + 8);
+                const charCode = parseInt(byte, 2);
+                if (charCode === 0 || charCode < 32) break;
+                output += String.fromCharCode(charCode);
+            }
+
+            document.getElementById('decoded-message').value = output;
+            document.getElementById('decoded-result').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
