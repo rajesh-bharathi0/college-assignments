@@ -4,7 +4,213 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SHA-1 Message Digest Algorithm</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .role-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .role-btn {
+            padding: 12px 30px;
+            border: 2px solid #667eea;
+            background: transparent;
+            color: #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .role-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            resize: vertical;
+        }
+
+        textarea:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-upload {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+            background-color: rgba(102, 126, 234, 0.05);
+        }
+
+        input[type="file"] {
+            margin: 10px 0;
+        }
+
+        #file-name {
+            display: block;
+            margin-top: 10px;
+            color: #666;
+            font-style: italic;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 20px auto;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .result-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9ff, #e8f0ff);
+            border-radius: 10px;
+            border: 1px solid #e1e5e9;
+        }
+
+        .digest-output {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        #digest-value {
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            word-break: break-all;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .copy-btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            margin: 0;
+            background: #28a745;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        .success {
+            color: #28a745;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .error {
+            color: #dc3545;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        #verification-status {
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -60,23 +266,37 @@
     </div>
 
     <script>
-        // SHA-1 Implementation
+        // Fixed SHA-1 Implementation
         function sha1(message) {
             // Convert string to array of bytes
             const msgBytes = new TextEncoder().encode(message);
             const msgBits = msgBytes.length * 8;
             
-            // Padding
-            const paddedLength = Math.ceil((msgBits + 65) / 512) * 512;
-            const paddedBytes = new Uint8Array(paddedLength / 8);
-            paddedBytes.set(msgBytes);
-            paddedBytes[msgBytes.length] = 0x80; // Append '1' bit followed by zeros
+            // Calculate padding length - Fixed calculation
+            const paddingBits = ((448 - (msgBits + 1) % 512) + 512) % 512;
+            const totalBits = msgBits + 1 + paddingBits + 64;
+            const paddedBytes = new Uint8Array(totalBits / 8);
             
-            // Append original length as 64-bit big-endian
-            const lengthBytes = new ArrayBuffer(8);
-            const lengthView = new DataView(lengthBytes);
-            lengthView.setUint32(4, msgBits, false); // Big-endian
-            paddedBytes.set(new Uint8Array(lengthBytes), paddedBytes.length - 8);
+            // Copy original message
+            paddedBytes.set(msgBytes);
+            
+            // Append '1' bit followed by zeros - Fixed padding
+            paddedBytes[msgBytes.length] = 0x80;
+            
+            // Append original length as 64-bit big-endian - Fixed length encoding
+            const lengthOffset = paddedBytes.length - 8;
+            // Handle 64-bit length properly
+            const highBits = Math.floor(msgBits / 0x100000000);
+            const lowBits = msgBits % 0x100000000;
+            
+            paddedBytes[lengthOffset] = (highBits >>> 24) & 0xff;
+            paddedBytes[lengthOffset + 1] = (highBits >>> 16) & 0xff;
+            paddedBytes[lengthOffset + 2] = (highBits >>> 8) & 0xff;
+            paddedBytes[lengthOffset + 3] = highBits & 0xff;
+            paddedBytes[lengthOffset + 4] = (lowBits >>> 24) & 0xff;
+            paddedBytes[lengthOffset + 5] = (lowBits >>> 16) & 0xff;
+            paddedBytes[lengthOffset + 6] = (lowBits >>> 8) & 0xff;
+            paddedBytes[lengthOffset + 7] = lowBits & 0xff;
             
             // Initialize hash values
             let h0 = 0x67452301;
@@ -189,12 +409,19 @@
         
         function verifyDigest() {
             const receivedMessage = document.getElementById('received-message').value;
-            const receivedDigest = document.getElementById('received-digest').value.toLowerCase();
+            const receivedDigest = document.getElementById('received-digest').value.toLowerCase().replace(/\s/g, '');
             const verificationResult = document.getElementById('verification-result');
             const verificationStatus = document.getElementById('verification-status');
             
             if (!receivedMessage.trim() || !receivedDigest.trim()) {
                 alert('Please enter both the message and digest.');
+                return;
+            }
+            
+            // Validate digest format
+            if (!/^[a-f0-9]{40}$/i.test(receivedDigest)) {
+                verificationStatus.innerHTML = '<span class="error">✗ Invalid digest format! SHA-1 digest should be 40 hexadecimal characters.</span>';
+                verificationResult.style.display = 'block';
                 return;
             }
             
@@ -211,6 +438,21 @@
         function copyDigest() {
             const digestValue = document.getElementById('digest-value').textContent;
             navigator.clipboard.writeText(digestValue).then(() => {
+                const copyBtn = document.querySelector('.copy-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = digestValue;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
                 const copyBtn = document.querySelector('.copy-btn');
                 const originalText = copyBtn.textContent;
                 copyBtn.textContent = 'Copied!';
